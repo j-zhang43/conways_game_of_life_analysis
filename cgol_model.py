@@ -6,27 +6,31 @@ import random
 class Simulation:
     def __init__(self, grid_size, inital_density, max_steps, seed, save_video): 
         self.step = 0
-        # fill grid with 0 and randomly fill with 1 based on density
-        self.grid = np.zeros((grid_size, grid_size), dtype=int)
+        
+        self.grid = np.zeros((grid_size, grid_size), dtype=np.uint8)
 
+        # create random grid with 1s (alive baseed on densit)
         random.seed(seed)
         rand_idxs = random.sample(range(0, grid_size*grid_size), int(grid_size*grid_size*(inital_density/100)))
         for n in rand_idxs:
             self.grid[n//grid_size][n%grid_size] = 1
         
-        # history for grid, used to test stagnation
         self.history = {tuple(self.grid.flatten())}
 
-        # simulate and save images if neededa
+        self.kernel = np.array([[1, 1, 1],
+                                [1, 0, 1],
+                                [1, 1, 1]], dtype=np.float32)
+
+        # simulate and save images if needed
         cont = True
         self.imgs = []
         if save_video: self.grid_to_imgs()
         while cont and self.step < max_steps:
-            if self.step % 50 == 0: print(self.step)
             cont = self.simulation_round()
             if save_video: self.grid_to_imgs()
         
         print(self.step)
+        
         # save video
         if save_video:
             filename = 'output_video.mp4'
@@ -43,32 +47,26 @@ class Simulation:
             out.release()
 
     def grid_to_imgs(self):
-        cell_size = 1000//len(self.grid)
+        cell_size = max(1, 1000//len(self.grid))
         img_array = 1 - np.repeat(np.repeat(self.grid, cell_size, axis=0), cell_size, axis=1)
         img_array = (img_array * 255).astype(np.uint8)
         self.imgs.append(img_array)
 
     def simulation_round(self):
-        new_grid = np.zeros((len(self.grid), len(self.grid)), dtype=int)
-        dirs = [(-1,0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]
-        for i in range(0, len(self.grid)):
-            for j in range(0, len(self.grid)):
-                count = 0
-                # count neighbors for 1
-                for dir in dirs:
-                    i_new = i + dir[0]
-                    j_new = j + dir[1]
-                    if 0<= i_new < len(self.grid) and 0<= j_new < len(self.grid) and self.grid[i_new][j_new] == 1: count+=1
-
-                # follow conways game of life rules for next generation
-                if self.grid[i][j]:
-                    if count < 2: new_grid[i][j] = 0
-                    elif count <= 3: new_grid[i][j] = 1
-                    else: new_grid[i][j] = 0
-                else:
-                    if count == 3: new_grid[i][j] = 1
-        self.grid = new_grid
+        neighbor_count = cv2.filter2D(self.grid, -1, self.kernel, borderType=cv2.BORDER_CONSTANT)
+    
+        # Create boolean masks to identify alive and dead cells
+        alive = (self.grid == 1)
+        dead = (self.grid == 0)
         
+        next_grid = self.grid.copy()
+        
+        next_grid[alive & ((neighbor_count < 2) | (neighbor_count > 3))] = 0
+        next_grid[dead & (neighbor_count == 3)] = 1
+
+        self.grid = next_grid
+        
+        # check if already exists
         if (tuple(self.grid.flatten()) not in self.history):
             self.history.add(tuple(self.grid.flatten()))
         else:
@@ -100,4 +98,5 @@ def main():
 
     Simulation(args.grid_size, args.initial_density, args.max_steps, args.seed, args.save_video)
 
-main()
+if __name__ == "__main__":
+    main()
