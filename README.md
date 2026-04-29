@@ -1,1 +1,1 @@
-# CONWAYS GAME OF LIFEgit push -u origin main
+# CONWAYS GAME OF LIFE

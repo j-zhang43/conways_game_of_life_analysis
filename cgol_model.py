@@ -29,8 +29,6 @@ class Simulation:
             cont = self.simulation_round()
             if save_video: self.grid_to_imgs()
         
-        print(self.step)
-        
         # save video
         if save_video:
             filename = 'output_video.mp4'
@@ -45,6 +43,16 @@ class Simulation:
                 out.write(img)
 
             out.release()
+
+        final_density = np.count_nonzero(self.grid)/ (grid_size*grid_size)
+        reason = None # zeros, stagnated, max
+        if not np.any(self.grid):reason = "zeros"
+        elif self.step == max_steps: reason = "max"
+        else: reason = "stagnated"
+
+        # write to csv
+        with open("data.csv", "a") as file:
+            file.write(f"{seed},{inital_density},{self.step},{final_density},{reason} \n")
 
     def grid_to_imgs(self):
         cell_size = max(1, 1000//len(self.grid))
