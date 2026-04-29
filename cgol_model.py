@@ -31,7 +31,7 @@ class Simulation:
         
         # save video
         if save_video:
-            filename = 'output_video.mp4'
+            filename = f"g-{grid_size}d-{inital_density}s-{seed}.mp4"
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
             fps = 10.0
             height, width = self.imgs[0].shape

@@ -27,4 +27,5 @@ plt.tight_layout()
 
 plt.show()
 
-
+max_step_count = df.loc[df['Final_Step_Count'].idxmax()]
+print(max_step_count)
